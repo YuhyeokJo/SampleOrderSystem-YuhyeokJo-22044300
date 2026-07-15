@@ -103,7 +103,9 @@ tests/
       않음
 - [ ] model/controller의 기존 로직·시그니처·저장 방식이 전혀 수정되지 않음(view 계층만
       변경)
-- [ ] 기존 controller 단위 테스트(FakeView 기반)가 전부 그대로 통과함(회귀 없음)
+- [ ] 기존 controller 단위 테스트(FakeView 기반)가 필요한 만큼만 갱신된 뒤(FakeView에 신규
+      메서드 추가, 출력 문자열 검사를 view 메서드 호출/인자 검사로 변경) 전부 통과함(검증
+      대상인 "어떤 model 호출 결과가 사용자에게 전달되는가"는 이전과 동일하게 유지, 회귀 없음)
 - [ ] 각 view의 실제 출력에 대한 신규 단위 테스트 작성 및 통과
 - [ ] REPORT.md(또는 `reports/Report-step8.md`) 작성
 

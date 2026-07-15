@@ -20,15 +20,20 @@ Plan-step8.md는 "view 계층 출력 포맷팅만 개선"을 원칙으로 하지
   변경하지 않는다. 즉 controller의 "무엇을 언제 호출하는가"는 그대로 두고, "그 결과를 어떤
   문자열로 보여주는가"만 view로 위임한다.
 - 이 위임 방식 변경으로 인해 기존 controller 단위 테스트의 `FakeView`(테스트 더블)에도
-  새 메서드가 추가되어야 한다. 이는 예상된 변경이며, 각 테스트가 여전히 같은 흐름(어떤
-  model 메서드가 호출되었는지)을 검증하도록 유지한다.
+  새 메서드가 추가되어야 한다. 또한 기존 테스트 중 `show_message`로 전달된 문자열 내용을
+  직접 검사하던 assertion(예: `"PRODUCING" in message`처럼 메시지 텍스트를 확인하던 부분)은,
+  해당 결과가 `show_xxx_result(order, ...)` 같은 새 메서드 호출로 옮겨간 경우 "그 메서드가
+  올바른 인자(`order`, `shortage_quantity` 등)로 호출되었는지"를 확인하는 assertion으로
+  고쳐 써야 한다. 이는 테스트 파일을 건드리지 않는 것이 아니라, 검증 대상을 "출력 문자열"에서
+  "view 메서드 호출 여부/인자"로 옮기는 예상된 리팩터링이며, 검증하는 대상(어떤 model
+  호출 결과가 사용자에게 전달되는지)은 동일하게 유지된다.
 
 ## `view/console_format.py` (신규 공통 헬퍼)
 
 | 함수 | 시그니처 | 동작 |
 |---|---|---|
 | `render_divider` | `render_divider(width=64)` | `"=" * width` 문자열 반환 |
-| `render_table` | `render_table(headers, rows)` | `headers`: 컬럼명 리스트, `rows`: 각 행이 문자열로 변환 가능한 값의 리스트인 2차원 리스트. 각 컬럼 폭을 헤더/데이터 중 가장 긴 길이 + 2칸 여백으로 계산해 정렬한 문자열 리스트(헤더 1줄 + 데이터 N줄)를 반환한다. `rows`가 비어 있으면 헤더만 반환한다. |
+| `render_table` | `render_table(headers, rows, aligns)` | `headers`: 컬럼명 리스트, `rows`: 각 행이 문자열로 변환 가능한 값의 리스트인 2차원 리스트, `aligns`: `headers`와 길이가 같은 정렬 지정 리스트(각 원소는 `"<"`(좌측 정렬) 또는 `">"`(우측 정렬)). 각 컬럼 폭을 헤더/데이터 중 가장 긴 길이 + 2칸 여백으로 계산하고, 해당 컬럼의 `aligns` 값에 따라 좌/우 정렬한 문자열 리스트(헤더 1줄 + 데이터 N줄)를 반환한다. `rows`가 비어 있으면 헤더만 반환한다. `aligns`의 길이가 `headers`와 다르면 `ValueError`를 발생시킨다. |
 | `render_status_badge` | `render_status_badge(status)` | `f"[{status}]"` 반환 |
 | `render_progress_bar` | `render_progress_bar(current, total, width=20)` | `total <= 0`이면 `f"[{'░' * width}] 0%"` 반환. 그렇지 않으면 `filled = round(width * current / total)`(0~width로 clamp), `percent = round(current / total * 100)`으로 `f"[{'█' * filled}{'░' * (width - filled)}] {percent}%"` 반환. |
 
@@ -60,8 +65,9 @@ Plan-step8.md는 "view 계층 출력 포맷팅만 개선"을 원칙으로 하지
 - `show_samples(samples)`:
   - 비어 있으면 기존과 동일하게 `"등록된 시료가 없습니다."` 출력(변경 없음).
   - 그 외: `f"등록 시료 목록 (총 {len(samples)}종)"` 한 줄을 출력한 뒤,
-    `render_table(["시료 ID", "이름", "평균 생산시간", "수율", "현재 재고"], rows)`로 만든
-    표를 출력한다.
+    `render_table(["시료 ID", "이름", "평균 생산시간", "수율", "현재 재고"], rows, aligns)`로
+    만든 표를 출력한다. `aligns = ["<", "<", ">", ">", ">"]`(시료 ID/이름은 좌측 정렬,
+    평균 생산시간/수율/현재 재고는 우측 정렬 — 기존 `COLUMN_HEADER`의 정렬과 동일).
 
 ### 3. 시료 주문 (`order_view.py`)
 - `show_menu()`: 시료 관리와 동일한 패턴(구분선 + 제목 + 한 줄 메뉴)으로 변경한다.
@@ -90,8 +96,11 @@ Plan-step8.md는 "view 계층 출력 포맷팅만 개선"을 원칙으로 하지
 - `show_menu()`: 시료 관리와 동일한 패턴으로 변경한다.
 - `show_reserved_orders(orders)`: 비어 있으면 기존과 동일한 안내 문구 유지. 그 외에는
   `f"접수된 주문 목록 (RESERVED, 총 {len(orders)}건)"`을 출력한 뒤, 각 행 앞에 1부터
-  시작하는 순번을 붙인 `render_table(["번호", "주문번호", "시료 ID", "고객명", "주문수량", "상태"], rows)`
-  표를 출력한다. 이 순번은 표시용일 뿐이며, 주문 선택은 기존과 동일하게 주문번호를 직접
+  시작하는 순번을 붙인
+  `render_table(["번호", "주문번호", "시료 ID", "고객명", "주문수량", "상태"], rows, aligns)`
+  표를 출력한다. `aligns = ["<", "<", "<", "<", ">", ">"]`(번호/주문번호/시료 ID/고객명은
+  좌측 정렬, 주문수량/상태는 우측 정렬 — 기존 `COLUMN_HEADER`의 정렬과 동일하고 번호 컬럼만
+  좌측 정렬로 추가). 이 순번은 표시용일 뿐이며, 주문 선택은 기존과 동일하게 주문번호를 직접
   입력하는 방식(`prompt_order_id()`)을 그대로 사용한다(선택 방식은 변경하지 않는다).
 - 승인 성공 시, controller는 `ApprovalModel.approve()`가 반환한 `(order, shortage_quantity)`를
   그대로 `self.view.show_approval_result(order, shortage_quantity)`에 전달한다:
@@ -135,8 +144,10 @@ Plan-step8.md는 "view 계층 출력 포맷팅만 개선"을 원칙으로 하지
     생성한 문자열과 `"({produced_quantity}/{actual_production_quantity})"`를 붙여 구성한다.
 - `show_waiting_jobs(jobs)`: 비어 있으면 기존과 동일한 안내 문구 유지. 그 외에는
   `f"대기 중인 생산 항목 (총 {len(jobs)}건, FIFO)"`을 출력한 뒤 1부터 시작하는 순번을 포함한
-  `render_table(["순번", "주문번호", "시료 ID", "부족분", "실 생산량", "총 생산 시간"], rows)`
-  표를 출력한다.
+  `render_table(["순번", "주문번호", "시료 ID", "부족분", "실 생산량", "총 생산 시간"], rows, aligns)`
+  표를 출력한다. `aligns = ["<", "<", "<", ">", ">", ">"]`(순번/주문번호/시료 ID는 좌측 정렬,
+  부족분/실 생산량/총 생산 시간은 우측 정렬 — 기존 `COLUMN_HEADER`의 정렬과 동일하고 순번
+  컬럼만 좌측 정렬로 추가).
 - 등록 성공 시, controller는 `self.view.show_registration_success(job)`을 호출하고, view는
   `f"생산 큐 등록 완료. 실 생산량: {job.actual_production_quantity}, 총 생산 시간: {job.total_production_time}"`
   형태(기존 문구와 동일한 내용, 문구 자체는 변경하지 않음)로 출력한다. 이 항목은 새 메서드로
@@ -152,7 +163,8 @@ Plan-step8.md는 "view 계층 출력 포맷팅만 개선"을 원칙으로 하지
 - `show_menu()`: 시료 관리와 동일한 패턴으로 변경한다.
 - `show_confirmed_orders(orders)`: 접수된 주문 목록과 동일한 방식(비어있으면 기존 문구 유지,
   그 외에는 건수 안내 + 순번 포함 표)으로 변경한다. 헤더:
-  `["번호", "주문번호", "시료 ID", "고객명", "주문수량", "상태"]`.
+  `["번호", "주문번호", "시료 ID", "고객명", "주문수량", "상태"]`,
+  `aligns = ["<", "<", "<", "<", ">", ">"]`(접수된 주문 목록과 동일한 정렬 규칙).
 - 출고 성공 시, controller는 갱신된 `Order`를 `self.view.show_release_result(order)`에
   전달하고 view는 다음과 같이 출력한다:
   ```
@@ -169,13 +181,15 @@ Plan-step8.md는 "view 계층 출력 포맷팅만 개선"을 원칙으로 하지
   `f"{render_status_badge(status)}: {counts[status]}건"` 형태로 한 줄씩 출력한다(상태 목록과
   집계 로직 자체는 변경하지 않는다).
 - `show_sample_stock_status(stock_status_list)`: 비어 있으면 기존과 동일한 안내 문구 유지.
-  그 외에는 `render_table(["시료 ID", "이름", "재고수량", "상태"], rows)`를 사용하되, `상태`
+  그 외에는 `render_table(["시료 ID", "이름", "재고수량", "상태"], rows, aligns)`를 사용하되
+  (`aligns = ["<", "<", ">", ">"]`, 기존 `STOCK_COLUMN_HEADER`의 정렬과 동일), `상태`
   컬럼 값은 `render_status_badge(item['status'])`로 감싼 값(`[여유]`/`[부족]`/`[고갈]`)을
   넣는다.
 
 ## 예외/경계 케이스 (테스트에 반드시 포함)
 - `render_table`: 빈 `rows` 전달 시 헤더 줄만 반환되는지 확인. 데이터 값이 헤더보다 길 때
-  컬럼 폭이 데이터 길이에 맞춰 늘어나는지 확인.
+  컬럼 폭이 데이터 길이에 맞춰 늘어나는지 확인. `aligns`에 지정된 대로 좌/우 정렬이 실제로
+  반영되는지 확인. `aligns`의 길이가 `headers`와 다르면 `ValueError`가 발생하는지 확인.
 - `render_progress_bar`: `total`이 0일 때 0%의 빈 바를 반환하는지, `current == total`일 때
   100%(모두 채워진 바)를 반환하는지, `current == 0`일 때 0%를 반환하는지 확인.
 - `render_status_badge`: 임의의 문자열을 대괄호로 정확히 감싸는지 확인.
