@@ -1,3 +1,5 @@
+import unicodedata
+
 import pytest
 
 from view.console_format import (
@@ -6,6 +8,16 @@ from view.console_format import (
     render_status_badge,
     render_table,
 )
+
+
+def _display_width(text):
+    """한글 등 전각 문자를 2칸으로 세는 독립적인 표시 폭 계산(테스트용 오라클)."""
+    return sum(2 if unicodedata.east_asian_width(char) in ("W", "F") else 1 for char in text)
+
+
+def _padded(text, width, align):
+    padding = " " * max(0, width - _display_width(text))
+    return padding + text if align == ">" else text + padding
 
 
 def test_render_divider_default_width():
@@ -23,8 +35,21 @@ def test_render_table_returns_header_only_when_rows_empty():
 
 def test_render_table_aligns_left_and_right():
     lines = render_table(["이름", "수량"], [["Wafer-A", 5]], ["<", ">"])
-    assert lines[0] == f"{'이름':<9}{'수량':>4}"
-    assert lines[1] == f"{'Wafer-A':<9}{5:>4}"
+    col0_width = max(_display_width("이름"), _display_width("Wafer-A")) + 2
+    col1_width = max(_display_width("수량"), _display_width("5")) + 2
+    assert lines[0] == _padded("이름", col0_width, "<") + _padded("수량", col1_width, ">")
+    assert lines[1] == _padded("Wafer-A", col0_width, "<") + _padded("5", col1_width, ">")
+
+
+def test_render_table_korean_and_ascii_columns_share_equal_display_width():
+    """한글 헤더/영문 데이터가 섞여도 모든 줄의 화면상 표시 폭이 동일해야 한다(정렬 회귀 테스트)."""
+    lines = render_table(
+        ["시료 ID", "이름", "평균 생산시간", "수율", "현재 재고"],
+        [["S-001", "Wafer", 1.0, 0.9, 100]],
+        ["<", "<", ">", ">", ">"],
+    )
+    widths = {_display_width(line) for line in lines}
+    assert len(widths) == 1
 
 
 def test_render_table_column_width_grows_with_data_length():
