@@ -138,7 +138,7 @@ Plan-step8.md는 "view 계층 출력 포맷팅만 개선"을 원칙으로 하지
      시료 ID     : S-003
      부족분      : 170
      실 생산량   : 206      총 생산 시간 : 165
-     진행률      : [██████████░░░░░░░░░░] 60% (124/206)
+     진행률      : [████████████░░░░░░░░] 60% (124/206)
     ```
     진행률 줄은 `render_progress_bar(job.produced_quantity, job.actual_production_quantity)`로
     생성한 문자열과 `"({produced_quantity}/{actual_production_quantity})"`를 붙여 구성한다.
