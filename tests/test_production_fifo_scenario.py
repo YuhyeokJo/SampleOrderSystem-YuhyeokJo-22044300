@@ -60,7 +60,10 @@ def _build_input_queue():
             # 생산라인: 대기열이 FIFO 순서를 지키는지 확인 후 하나씩 완료 처리
             "5",
             "4",  # 대기 주문 확인: 2건(주문2, 주문3) FIFO 순서
-            "3",  # 생산 현황 조회: 주문1이 진행 중
+            "3",  # 생산 현황 조회: 주문1이 진행 중, 누적 생산량 0
+            "2",
+            "2",  # 부분 진행 기록(2/5) -> 진행률 바가 중간 단계로 채워지는지 확인
+            "3",  # 생산 현황 조회: 누적 생산량 2/5(40%)
             "2",
             "999999",  # 주문1 완료 -> 주문2가 진행 중으로 승격
             "4",  # 대기 주문 확인: 1건(주문3)만 남음
@@ -106,6 +109,10 @@ def test_production_queue_processes_multiple_jobs_in_fifo_order(tmp_path, monkey
     first_waiting_block = output[first_waiting_index:block_end]
     assert first_waiting_block.index(ORDER_2_ID) < first_waiting_block.index(ORDER_3_ID)
     assert ORDER_1_ID not in first_waiting_block  # 진행 중인 항목은 대기 목록에서 제외
+
+    # 부분 진행 기록(2/5) 시 진행률 바가 0%가 아닌 중간 단계(40%)로 채워짐을 확인
+    assert "진행 기록 완료: [████████░░░░░░░░░░░░] 40% (2/5)" in output
+    assert "진행률      : [████████░░░░░░░░░░░░] 40% (2/5)" in output
 
     # 완료 처리마다 다음 항목이 진행 중으로 승격되며 순서대로 CONFIRMED 전환
     assert f"생산 완료: 주문번호 {ORDER_1_ID}, 상태 변경: PRODUCING → [CONFIRMED]" in output
