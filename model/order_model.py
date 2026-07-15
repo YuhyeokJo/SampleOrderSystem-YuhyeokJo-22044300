@@ -7,6 +7,7 @@ from model.sample_model import SampleModel
 DEFAULT_STORAGE_PATH = "data/orders.json"
 ORDER_NUMBER_DATE_FORMAT = "%Y%m%d"
 ORDER_NUMBER_SEQUENCE_DIGITS = 4
+CONFIRMED_STATUS = "CONFIRMED"
 
 
 class OrderModel:
@@ -38,6 +39,9 @@ class OrderModel:
 
     def list_reserved(self):
         return [order for order in self._orders if order.status == RESERVED_STATUS]
+
+    def list_confirmed(self):
+        return [order for order in self._orders if order.status == CONFIRMED_STATUS]
 
     def update_status(self, order_id, new_status):
         index = self._index_of(order_id)

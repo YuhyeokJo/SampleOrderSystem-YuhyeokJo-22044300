@@ -128,3 +128,24 @@ def test_list_reserved_includes_only_reserved_status_orders(order_model):
     reserved_order_ids = [order.order_id for order in order_model.list_reserved()]
 
     assert reserved_order_ids == [reserved_order.order_id]
+
+
+def test_list_confirmed_when_no_orders_returns_empty(order_model):
+    assert order_model.list_confirmed() == []
+
+
+def test_list_confirmed_includes_only_confirmed_status_orders(order_model):
+    reserved_order = order_model.reserve("S-1", "Customer-A", 5)
+    confirmed_order = order_model.reserve("S-1", "Customer-B", 3)
+    producing_order = order_model.reserve("S-1", "Customer-C", 2)
+    rejected_order = order_model.reserve("S-1", "Customer-D", 1)
+    released_order = order_model.reserve("S-1", "Customer-E", 4)
+    order_model.update_status(confirmed_order.order_id, "CONFIRMED")
+    order_model.update_status(producing_order.order_id, "PRODUCING")
+    order_model.update_status(rejected_order.order_id, "REJECTED")
+    order_model.update_status(released_order.order_id, "RELEASE")
+
+    confirmed_order_ids = [order.order_id for order in order_model.list_confirmed()]
+
+    assert confirmed_order_ids == [confirmed_order.order_id]
+    assert reserved_order.order_id not in confirmed_order_ids
