@@ -23,7 +23,7 @@ S-Semi는 다양한 종류의 반도체 시료를 생산하여 연구소, 팹리
 
 ```
 consistency-verifier → ai-action → test-verifier
-                                  ↘ compliance-verifier (병렬)
+                                 → compliance-verifier (병렬)
 ```
 
 | 단계 | Agent | 역할 |
@@ -35,7 +35,7 @@ consistency-verifier → ai-action → test-verifier
 
 - `consistency-verifier`가 FAIL이면 구현을 시작하지 않는다.
 - `test-verifier` 또는 `compliance-verifier`가 FAIL이면 `ai-action`을 재실행한다.
-- 모든 agent가 PASS한 후에만 해당 phase를 완료로 간주한다.
+- 모든 agent가 PASS한 후에만 해당 step 완료로 간주한다.
 
 ## 참고 프로젝트
 
