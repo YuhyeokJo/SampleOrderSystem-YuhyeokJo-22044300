@@ -1,8 +1,8 @@
-from controller.sample_controller import SampleController
+from controller.main_controller import MainController
 
 
 def main():
-    SampleController().run()
+    MainController().run()
 
 
 if __name__ == "__main__":
