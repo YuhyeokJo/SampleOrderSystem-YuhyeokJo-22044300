@@ -92,3 +92,21 @@ def test_reserve_resets_sequence_when_date_changes(tmp_path, sample_model):
 
 def test_all_when_no_orders_reserved_returns_empty(order_model):
     assert order_model.all() == []
+
+
+def test_find_by_id_returns_none_when_order_not_found(order_model):
+    assert order_model.find_by_id("UNKNOWN") is None
+
+
+def test_update_status_changes_status_and_persists(order_model):
+    order = order_model.reserve("S-1", "Customer-A", 5)
+
+    updated_order = order_model.update_status(order.order_id, "PRODUCING")
+
+    assert updated_order.status == "PRODUCING"
+    assert order_model.find_by_id(order.order_id).status == "PRODUCING"
+
+
+def test_update_status_rejects_unknown_order_id(order_model):
+    with pytest.raises(OrderValidationError):
+        order_model.update_status("UNKNOWN", "CONFIRMED")

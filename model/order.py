@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, replace
 
 RESERVED_STATUS = "RESERVED"
 
@@ -32,6 +32,9 @@ class Order:
             quantity=quantity,
             status=RESERVED_STATUS,
         )
+
+    def with_status(self, new_status):
+        return replace(self, status=new_status)
 
     def to_dict(self):
         return {

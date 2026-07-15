@@ -30,6 +30,27 @@ class OrderModel:
     def all(self):
         return list(self._orders)
 
+    def find_by_id(self, order_id):
+        for order in self._orders:
+            if order.order_id == order_id:
+                return order
+        return None
+
+    def update_status(self, order_id, new_status):
+        index = self._index_of(order_id)
+        if index is None:
+            raise OrderValidationError(f"주문번호 '{order_id}'는 존재하지 않습니다.")
+        updated_order = self._orders[index].with_status(new_status)
+        self._orders[index] = updated_order
+        self._save()
+        return updated_order
+
+    def _index_of(self, order_id):
+        for index, order in enumerate(self._orders):
+            if order.order_id == order_id:
+                return index
+        return None
+
     def _generate_order_id(self):
         today_str = self._date_provider().strftime(ORDER_NUMBER_DATE_FORMAT)
         prefix = f"ORD-{today_str}-"
