@@ -110,3 +110,21 @@ def test_update_status_changes_status_and_persists(order_model):
 def test_update_status_rejects_unknown_order_id(order_model):
     with pytest.raises(OrderValidationError):
         order_model.update_status("UNKNOWN", "CONFIRMED")
+
+
+def test_list_reserved_when_no_orders_returns_empty(order_model):
+    assert order_model.list_reserved() == []
+
+
+def test_list_reserved_includes_only_reserved_status_orders(order_model):
+    reserved_order = order_model.reserve("S-1", "Customer-A", 5)
+    confirmed_order = order_model.reserve("S-1", "Customer-B", 3)
+    producing_order = order_model.reserve("S-1", "Customer-C", 2)
+    rejected_order = order_model.reserve("S-1", "Customer-D", 1)
+    order_model.update_status(confirmed_order.order_id, "CONFIRMED")
+    order_model.update_status(producing_order.order_id, "PRODUCING")
+    order_model.update_status(rejected_order.order_id, "REJECTED")
+
+    reserved_order_ids = [order.order_id for order in order_model.list_reserved()]
+
+    assert reserved_order_ids == [reserved_order.order_id]

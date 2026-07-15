@@ -95,3 +95,42 @@ def test_search_with_no_matching_keyword_returns_empty(sample_model):
     sample_model.register("S-1", "Wafer-A", 10.0, 0.9, 10)
 
     assert sample_model.search_by_name("NoSuchName") == []
+
+
+def test_decrease_stock_reduces_quantity_and_persists(sample_model):
+    sample_model.register("S-1", "Wafer-A", 10.0, 0.9, 100)
+
+    updated_sample = sample_model.decrease_stock("S-1", 30)
+
+    assert updated_sample.stock_quantity == 70
+    assert sample_model.find_by_id("S-1").stock_quantity == 70
+
+
+def test_decrease_stock_allows_exact_boundary_reducing_to_zero(sample_model):
+    sample_model.register("S-1", "Wafer-A", 10.0, 0.9, 30)
+
+    updated_sample = sample_model.decrease_stock("S-1", 30)
+
+    assert updated_sample.stock_quantity == 0
+
+
+def test_decrease_stock_rejects_amount_greater_than_current_stock(sample_model):
+    sample_model.register("S-1", "Wafer-A", 10.0, 0.9, 30)
+
+    with pytest.raises(SampleValidationError):
+        sample_model.decrease_stock("S-1", 31)
+
+    assert sample_model.find_by_id("S-1").stock_quantity == 30
+
+
+def test_decrease_stock_rejects_unregistered_sample_id(sample_model):
+    with pytest.raises(SampleValidationError):
+        sample_model.decrease_stock("UNKNOWN", 1)
+
+
+@pytest.mark.parametrize("invalid_amount", [-1, 1.5, "10"])
+def test_decrease_stock_rejects_invalid_amount(sample_model, invalid_amount):
+    sample_model.register("S-1", "Wafer-A", 10.0, 0.9, 30)
+
+    with pytest.raises(SampleValidationError):
+        sample_model.decrease_stock("S-1", invalid_amount)

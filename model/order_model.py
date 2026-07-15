@@ -1,6 +1,6 @@
 from datetime import date
 
-from model.order import Order, OrderValidationError
+from model.order import RESERVED_STATUS, Order, OrderValidationError
 from model.order_repository import OrderRepository
 from model.sample_model import SampleModel
 
@@ -35,6 +35,9 @@ class OrderModel:
             if order.order_id == order_id:
                 return order
         return None
+
+    def list_reserved(self):
+        return [order for order in self._orders if order.status == RESERVED_STATUS]
 
     def update_status(self, order_id, new_status):
         index = self._index_of(order_id)
