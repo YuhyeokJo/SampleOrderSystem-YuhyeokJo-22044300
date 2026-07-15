@@ -43,26 +43,39 @@ python -m pytest tests/test_end_to_end_scenario.py -v
 
 ## 콘솔에서 전체 시나리오 직접 확인하기
 
-`scripts/demo_scenario.txt`에는 더미 시료 등록 → 주문 접수 → 승인/거절 → 생산 완료 → 출고 →
-모니터링까지 이어지는 입력값이 한 줄씩 저장되어 있다. 이를 표준입력으로 넣어 `main.py`를
-실행하면, 실제 콘솔 화면에 어떻게 출력되는지 눈으로 확인할 수 있다(pytest처럼 값만
-assert하는 것이 아니라 실제 렌더링된 표/배지/진행률 바를 그대로 볼 수 있다).
+`scripts/` 아래에는 표준입력으로 넣으면 실제 콘솔 화면이 어떻게 출력되는지 눈으로 확인할 수
+있는 입력 스크립트가 있다(pytest처럼 값만 assert하는 것이 아니라 실제 렌더링된 표/배지/
+진행률 바를 그대로 볼 수 있다).
+
+- `demo_scenario.txt`: 시료 2종(S-001 재고100, S-002 재고5) 등록 → 주문 3건 접수(재고
+  충분/부족/거절 대상 각 1건) → 승인·거절 → 생산 완료 → 출고 → 최종 모니터링(RELEASE 2건,
+  S-002 재고 고갈)까지 전체 기능을 훑는 시나리오.
+- `demo_production_fifo.txt`: 시료 3종을 재고 부족이 나도록 등록하고 3건을 모두 승인해
+  생산 큐에 동시에 쌓은 뒤, 대기열이 등록 순서(FIFO)대로 표시되고 하나씩 완료될 때마다
+  다음 항목이 진행 중으로 승격되는 것을 확인하는 생산라인 전용 시나리오.
+
+`scripts/run_demo.sh`(bash)/`scripts/run_demo.ps1`(PowerShell)를 사용하면 실행 전에 기존
+데이터(`data/samples.json`, `data/orders.json`, `data/production_jobs.json`)를 자동으로
+지우고 항상 빈 상태에서 시작하므로, 여러 번 실행해도 같은 결과를 볼 수 있다.
 
 ```bash
 # bash / git bash
-python main.py < scripts/demo_scenario.txt
+./scripts/run_demo.sh                       # demo_scenario.txt (기본값)
+./scripts/run_demo.sh demo_production_fifo.txt
 ```
 
 ```powershell
 # PowerShell
-Get-Content scripts\demo_scenario.txt | python main.py
+.\scripts\run_demo.ps1
+.\scripts\run_demo.ps1 demo_production_fifo.txt
 ```
 
-시나리오는 시료 2종(S-001 재고100, S-002 재고5) 등록, 주문 3건 접수(재고 충분/부족/거절
-대상 각 1건), 승인·거절, 생산 완료, 출고까지 진행한 뒤 최종 모니터링(RELEASE 2건, S-002
-재고 고갈 상태)을 보여주고 프로그램을 종료한다. 이 파일과 같은 디렉터리에 `samples.json`,
-`orders.json`, `data/` 등 실행 결과 파일이 생성되므로, 실제 프로젝트 데이터에 영향을 주지
-않으려면 별도의 빈 디렉터리에서 실행하는 것을 권장한다.
+직접 데이터를 초기화하지 않고 실행하고 싶다면 아래처럼 `main.py`에 파일을 그대로 파이프해도
+된다(이 경우 이전 실행 데이터가 남아 있으면 결과가 달라질 수 있다).
+
+```bash
+python main.py < scripts/demo_scenario.txt
+```
 
 ## 주문 상태 흐름
 
