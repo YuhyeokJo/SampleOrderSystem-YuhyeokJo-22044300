@@ -9,14 +9,28 @@ def _default_controllers():
     from controller.production_controller import ProductionController
     from controller.release_controller import ReleaseController
     from controller.sample_controller import SampleController
+    from model.approval_model import ApprovalModel
+    from model.monitoring_model import MonitoringModel
+    from model.order_model import OrderModel
+    from model.production_model import ProductionModel
+    from model.release_model import ReleaseModel
+
+    sample_model = SampleModel()
+    order_model = OrderModel(sample_model=sample_model)
+    production_model = ProductionModel(sample_model=sample_model, order_model=order_model)
+    approval_model = ApprovalModel(
+        order_model=order_model, sample_model=sample_model, production_model=production_model
+    )
+    release_model = ReleaseModel(order_model=order_model)
+    monitoring_model = MonitoringModel(sample_model, order_model)
 
     return {
-        "1": SampleController(),
-        "2": OrderController(),
-        "3": ApprovalController(),
-        "4": MonitoringController(),
-        "5": ProductionController(),
-        "6": ReleaseController(),
+        "1": SampleController(model=sample_model),
+        "2": OrderController(model=order_model),
+        "3": ApprovalController(model=approval_model),
+        "4": MonitoringController(model=monitoring_model),
+        "5": ProductionController(model=production_model),
+        "6": ReleaseController(model=release_model),
     }
 
 

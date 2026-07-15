@@ -28,6 +28,15 @@ def monitoring_model(sample_model, order_model):
     return MonitoringModel(sample_model, order_model)
 
 
+def test_default_constructor_does_not_raise(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+
+    model = MonitoringModel()
+
+    assert model.count_orders_by_status() == {"RESERVED": 0, "CONFIRMED": 0, "PRODUCING": 0, "RELEASE": 0}
+    assert model.sample_stock_status() == []
+
+
 def test_count_orders_by_status_when_no_orders_returns_all_zero(monitoring_model):
     counts = monitoring_model.count_orders_by_status()
 

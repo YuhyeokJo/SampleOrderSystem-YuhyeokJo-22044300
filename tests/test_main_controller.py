@@ -138,3 +138,34 @@ def test_summary_refreshes_after_sample_registered_via_real_sample_controller(tm
     controller.run()
 
     assert view.summaries == [(0, 0), (1, 50)]
+
+
+def test_default_controllers_share_sample_model_across_menus(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    inputs = iter(
+        [
+            "1",
+            "1",
+            "S-001",
+            "Wafer-A",
+            "1",
+            "0.9",
+            "100",
+            "4",
+            "2",
+            "1",
+            "S-001",
+            "Customer-A",
+            "10",
+            "2",
+            "7",
+        ]
+    )
+    monkeypatch.setattr("builtins.input", lambda prompt="": next(inputs))
+
+    controller = MainController()
+    controller.run()
+
+    output = capsys.readouterr().out
+    assert "등록되어 있지 않습니다" not in output
+    assert "예약 접수 완료." in output

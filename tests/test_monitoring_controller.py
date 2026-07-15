@@ -43,6 +43,19 @@ def make_controller(choices, tmp_path):
     return MonitoringController(model=model, view=view), view, order_model, sample_model
 
 
+def test_default_constructor_run_reports_empty_state_without_raising(tmp_path, monkeypatch, capsys):
+    monkeypatch.chdir(tmp_path)
+    choices = iter(["1", "2", "3"])
+    monkeypatch.setattr("builtins.input", lambda prompt="": next(choices))
+
+    controller = MonitoringController()
+    controller.run()
+
+    output = capsys.readouterr().out
+    assert "[RESERVED]: 0건" in output
+    assert "등록된 시료가 없습니다." in output
+
+
 def test_show_order_counts_flow_when_no_orders_reports_all_zero(tmp_path):
     controller, view, _, _ = make_controller(["1", "3"], tmp_path)
 

@@ -1,3 +1,6 @@
+from model.sample_model import SampleModel
+from model.order_model import OrderModel
+
 RESERVED_STATUS = "RESERVED"
 CONFIRMED_STATUS = "CONFIRMED"
 PRODUCING_STATUS = "PRODUCING"
@@ -13,9 +16,9 @@ SHORTAGE = "부족"
 class MonitoringModel:
     """주문 현황과 시료 재고 현황을 조회·집계하는 읽기 전용 모델."""
 
-    def __init__(self, sample_model, order_model):
-        self._sample_model = sample_model
-        self._order_model = order_model
+    def __init__(self, sample_model=None, order_model=None):
+        self._sample_model = sample_model or SampleModel()
+        self._order_model = order_model or OrderModel()
 
     def count_orders_by_status(self):
         counts = {status: 0 for status in MONITORED_ORDER_STATUSES}
