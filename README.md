@@ -52,7 +52,12 @@ python -m pytest tests/test_end_to_end_scenario.py -v
   S-002 재고 고갈)까지 전체 기능을 훑는 시나리오.
 - `demo_production_fifo.txt`: 시료 3종을 재고 부족이 나도록 등록하고 3건을 모두 승인해
   생산 큐에 동시에 쌓은 뒤, 대기열이 등록 순서(FIFO)대로 표시되고 하나씩 완료될 때마다
-  다음 항목이 진행 중으로 승격되는 것을 확인하는 생산라인 전용 시나리오.
+  다음 항목이 진행 중으로 승격되는 것을 확인하는 생산라인 전용 시나리오. 첫 항목은 진행률
+  0% → 40% → 완료 순으로 채워지는 과정도 함께 보여준다.
+- `demo_mixed_status.txt`: 시료 4종·주문 7건을 등록해 이름 검색, 승인(충분/정확히 소진/
+  부족)·거절, 생산 일부만 진행 후 미완료로 남기기, 일부만 출고까지 진행한 뒤 최종
+  모니터링에서 `RESERVED`/`CONFIRMED`/`PRODUCING`/`RELEASE`(REJECTED 제외)와 재고 상태
+  `여유`/`부족`/`고갈`이 한 화면에 동시에 나타나는 것을 확인하는 복합 시나리오.
 
 `scripts/run_demo.sh`(bash)/`scripts/run_demo.ps1`(PowerShell)를 사용하면 실행 전에 기존
 데이터(`data/samples.json`, `data/orders.json`, `data/production_jobs.json`)를 자동으로
@@ -62,12 +67,14 @@ python -m pytest tests/test_end_to_end_scenario.py -v
 # bash / git bash
 ./scripts/run_demo.sh                       # demo_scenario.txt (기본값)
 ./scripts/run_demo.sh demo_production_fifo.txt
+./scripts/run_demo.sh demo_mixed_status.txt
 ```
 
 ```powershell
 # PowerShell
 .\scripts\run_demo.ps1
 .\scripts\run_demo.ps1 demo_production_fifo.txt
+.\scripts\run_demo.ps1 demo_mixed_status.txt
 ```
 
 직접 데이터를 초기화하지 않고 실행하고 싶다면 아래처럼 `main.py`에 파일을 그대로 파이프해도
