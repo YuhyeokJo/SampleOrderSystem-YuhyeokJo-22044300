@@ -45,13 +45,7 @@ class ApprovalController:
             self.view.show_message(f"승인 실패: {error}")
             return
 
-        if shortage_quantity is None:
-            self.view.show_message(f"승인 완료: 주문번호 {order.order_id}, 상태 CONFIRMED로 전환")
-        else:
-            self.view.show_message(
-                f"승인 완료: 주문번호 {order.order_id}, 상태 PRODUCING으로 전환, "
-                f"부족분 {shortage_quantity} 생산라인 등록"
-            )
+        self.view.show_approval_result(order, shortage_quantity)
 
     def _reject_order(self):
         order_id = self.view.prompt_order_id()
@@ -62,4 +56,4 @@ class ApprovalController:
             self.view.show_message(f"거절 실패: {error}")
             return
 
-        self.view.show_message(f"거절 완료: 주문번호 {order.order_id}, 상태 REJECTED로 전환")
+        self.view.show_rejection_result(order)

@@ -40,4 +40,4 @@ class ReleaseController:
             self.view.show_message(f"출고 실패: {error}")
             return
 
-        self.view.show_message(f"출고 완료: 주문번호 {order.order_id}, 상태 RELEASE로 전환")
+        self.view.show_release_result(order)

@@ -37,9 +37,11 @@ class OrderController:
             self.view.show_message("접수 실패: 주문 수량은 정수여야 합니다.")
             return
 
+        self.view.show_input_summary(sample_id, customer_name, quantity)
+
         try:
             order = self.model.reserve(sample_id, customer_name, quantity)
         except OrderValidationError as error:
             self.view.show_message(f"접수 실패: {error}")
             return
-        self.view.show_message(f"접수 완료: 주문번호 {order.order_id}")
+        self.view.show_reservation_success(order)

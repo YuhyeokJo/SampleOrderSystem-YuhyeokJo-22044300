@@ -1,20 +1,17 @@
+from view.console_format import render_divider, render_status_badge, render_table
+
+
 class ReleaseView:
     """출고 처리 기능의 콘솔 입출력을 담당한다."""
 
-    MENU = """
-==== 출고 처리 ====
-1. 승인 완료(CONFIRMED) 주문 목록 조회
-2. 출고 처리
-3. 종료
-"""
-
-    COLUMN_HEADER = f"{'주문번호':<20}{'시료 ID':<12}{'고객명':<12}{'주문수량':>8}{'상태':>10}"
-
     def show_menu(self):
-        print(self.MENU)
+        print(render_divider())
+        print(" [6] 출고 처리")
+        print(render_divider())
+        print(" [1] 승인 완료(CONFIRMED) 주문 목록 조회  [2] 출고 처리  [3] 종료")
 
     def prompt_choice(self):
-        return input("메뉴를 선택하세요: ").strip()
+        return input("선택 > ").strip()
 
     def prompt_order_id(self):
         return input("주문번호: ").strip()
@@ -26,9 +23,16 @@ class ReleaseView:
         if not orders:
             print("승인 완료(CONFIRMED)된 주문이 없습니다.")
             return
-        print(self.COLUMN_HEADER)
-        for order in orders:
-            print(
-                f"{order.order_id:<20}{order.sample_id:<12}{order.customer_name:<12}"
-                f"{order.quantity:>8}{order.status:>10}"
-            )
+        print(f"승인 완료(CONFIRMED) 주문 목록 (총 {len(orders)}건)")
+        headers = ["번호", "주문번호", "시료 ID", "고객명", "주문수량", "상태"]
+        rows = [
+            [index, order.order_id, order.sample_id, order.customer_name, order.quantity, order.status]
+            for index, order in enumerate(orders, start=1)
+        ]
+        for line in render_table(headers, rows, ["<", "<", "<", "<", ">", ">"]):
+            print(line)
+
+    def show_release_result(self, order):
+        print("출고 처리 완료.")
+        print(f" 주문번호   : {order.order_id}")
+        print(f" 상태 변경  : CONFIRMED → {render_status_badge(order.status)}")

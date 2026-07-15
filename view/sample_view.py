@@ -1,21 +1,17 @@
+from view.console_format import render_divider, render_table
+
+
 class SampleView:
     """시료 관리 기능의 콘솔 입출력을 담당한다."""
 
-    MENU = """
-==== 시료 관리 ====
-1. 시료 등록
-2. 시료 목록 조회
-3. 시료 검색
-4. 종료
-"""
-
-    COLUMN_HEADER = f"{'시료 ID':<12}{'이름':<16}{'평균 생산시간':>14}{'수율':>8}{'재고 수량':>10}"
-
     def show_menu(self):
-        print(self.MENU)
+        print(render_divider())
+        print(" [1] 시료 관리")
+        print(render_divider())
+        print(" [1] 시료 등록  [2] 시료 목록 조회  [3] 시료 검색  [4] 종료")
 
     def prompt_choice(self):
-        return input("메뉴를 선택하세요: ").strip()
+        return input("선택 > ").strip()
 
     def prompt_sample_id(self):
         return input("시료 ID: ").strip()
@@ -42,9 +38,11 @@ class SampleView:
         if not samples:
             print("등록된 시료가 없습니다.")
             return
-        print(self.COLUMN_HEADER)
-        for sample in samples:
-            print(
-                f"{sample.sample_id:<12}{sample.name:<16}"
-                f"{sample.avg_production_time:>14}{sample.yield_rate:>8}{sample.stock_quantity:>10}"
-            )
+        print(f"등록 시료 목록 (총 {len(samples)}종)")
+        headers = ["시료 ID", "이름", "평균 생산시간", "수율", "현재 재고"]
+        rows = [
+            [sample.sample_id, sample.name, sample.avg_production_time, sample.yield_rate, sample.stock_quantity]
+            for sample in samples
+        ]
+        for line in render_table(headers, rows, ["<", "<", ">", ">", ">"]):
+            print(line)

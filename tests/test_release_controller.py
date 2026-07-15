@@ -14,6 +14,7 @@ class FakeView:
         self._order_id = order_id
         self.messages = []
         self.confirmed_orders_shown = None
+        self.release_results = []
 
     def show_menu(self):
         pass
@@ -29,6 +30,9 @@ class FakeView:
 
     def show_confirmed_orders(self, orders):
         self.confirmed_orders_shown = orders
+
+    def show_release_result(self, order):
+        self.release_results.append(order)
 
 
 def make_controller(choices, tmp_path, order_id="ORD-1"):
@@ -53,7 +57,8 @@ def test_release_flow_transitions_confirmed_order_to_release(tmp_path):
     controller.run()
 
     assert order_model.find_by_id(order.order_id).status == "RELEASE"
-    assert any("출고 완료" in message for message in view.messages)
+    assert len(view.release_results) == 1
+    assert view.release_results[0].order_id == order.order_id
 
 
 def test_release_flow_reports_failure_for_unknown_order_id(tmp_path):

@@ -16,6 +16,8 @@ class FakeView:
         self._order_id = order_id
         self.messages = []
         self.reserved_orders_shown = None
+        self.approval_results = []
+        self.rejection_results = []
 
     def show_menu(self):
         pass
@@ -31,6 +33,12 @@ class FakeView:
 
     def show_reserved_orders(self, orders):
         self.reserved_orders_shown = orders
+
+    def show_approval_result(self, order, shortage_quantity):
+        self.approval_results.append((order, shortage_quantity))
+
+    def show_rejection_result(self, order):
+        self.rejection_results.append(order)
 
 
 def make_controller(choices, tmp_path, order_id="ORD-1"):
@@ -60,7 +68,10 @@ def test_approve_flow_confirms_order_when_stock_sufficient(tmp_path):
     controller.run()
 
     assert order_model.find_by_id(order.order_id).status == "CONFIRMED"
-    assert any("CONFIRMED" in message for message in view.messages)
+    assert len(view.approval_results) == 1
+    approved_order, shortage_quantity = view.approval_results[0]
+    assert approved_order.order_id == order.order_id
+    assert shortage_quantity is None
 
 
 def test_approve_flow_reports_producing_status_when_stock_short(tmp_path):
@@ -71,7 +82,10 @@ def test_approve_flow_reports_producing_status_when_stock_short(tmp_path):
     controller.run()
 
     assert order_model.find_by_id(order.order_id).status == "PRODUCING"
-    assert any("PRODUCING" in message and "부족분 1" in message for message in view.messages)
+    assert len(view.approval_results) == 1
+    approved_order, shortage_quantity = view.approval_results[0]
+    assert approved_order.order_id == order.order_id
+    assert shortage_quantity == 1
 
 
 def test_approve_flow_reports_failure_for_unknown_order_id(tmp_path):
@@ -102,7 +116,8 @@ def test_reject_flow_transitions_order_to_rejected(tmp_path):
     controller.run()
 
     assert order_model.find_by_id(order.order_id).status == "REJECTED"
-    assert any("거절 완료" in message for message in view.messages)
+    assert len(view.rejection_results) == 1
+    assert view.rejection_results[0].order_id == order.order_id
 
 
 def test_reject_flow_reports_failure_for_unknown_order_id(tmp_path):

@@ -45,10 +45,7 @@ class ProductionController:
         except ProductionValidationError as error:
             self.view.show_message(f"등록 실패: {error}")
             return
-        self.view.show_message(
-            f"등록 완료: 실 생산량 {job.actual_production_quantity}, "
-            f"총 생산 시간 {job.total_production_time}"
-        )
+        self.view.show_registration_success(job)
 
     def _record_progress(self):
         raw_quantity = self.view.prompt_produced_quantity()
@@ -65,12 +62,7 @@ class ProductionController:
             self.view.show_message(f"기록 실패: {error}")
             return
 
-        if completed:
-            self.view.show_message(f"생산 완료: 주문번호 {job.order_id}, 상태 CONFIRMED로 전환")
-        else:
-            self.view.show_message(
-                f"진행 기록 완료: 누적 생산량 {job.produced_quantity}/{job.actual_production_quantity}"
-            )
+        self.view.show_progress_result(job, completed)
 
     def _show_current_job(self):
         job = self.model.current_job()

@@ -14,6 +14,8 @@ class FakeView:
         self._customer_name = customer_name
         self._quantity = quantity
         self.messages = []
+        self.input_summaries = []
+        self.reservation_successes = []
 
     def show_menu(self):
         pass
@@ -32,6 +34,12 @@ class FakeView:
 
     def show_message(self, message):
         self.messages.append(message)
+
+    def show_input_summary(self, sample_id, customer_name, quantity):
+        self.input_summaries.append((sample_id, customer_name, quantity))
+
+    def show_reservation_success(self, order):
+        self.reservation_successes.append(order)
 
 
 def make_controller(choices, tmp_path, **view_kwargs):
@@ -52,7 +60,9 @@ def test_reserve_flow_saves_order_and_reports_success(tmp_path):
     controller.run()
 
     assert len(controller.model.all()) == 1
-    assert any("접수 완료" in message and "ORD-20260715-0001" in message for message in view.messages)
+    assert view.input_summaries == [("S-1", "Customer-A", 5)]
+    assert len(view.reservation_successes) == 1
+    assert view.reservation_successes[0].order_id == "ORD-20260715-0001"
 
 
 def test_reserve_flow_rejects_unregistered_sample_id(tmp_path):

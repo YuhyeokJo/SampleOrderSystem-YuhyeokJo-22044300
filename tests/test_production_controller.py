@@ -19,6 +19,8 @@ class FakeView:
         self.messages = []
         self.current_job_shown = None
         self.waiting_jobs_shown = None
+        self.registration_successes = []
+        self.progress_results = []
 
     def show_menu(self):
         pass
@@ -47,6 +49,12 @@ class FakeView:
     def show_waiting_jobs(self, jobs):
         self.waiting_jobs_shown = jobs
 
+    def show_registration_success(self, job):
+        self.registration_successes.append(job)
+
+    def show_progress_result(self, job, completed):
+        self.progress_results.append((job, completed))
+
 
 def make_controller(choices, tmp_path, **view_kwargs):
     sample_model = SampleModel(repository=SampleRepository(str(tmp_path / "samples.json")))
@@ -71,7 +79,8 @@ def test_register_flow_saves_job_and_reports_success(tmp_path):
     controller.run()
 
     assert controller.model.current_job() is not None
-    assert any("등록 완료" in message for message in view.messages)
+    assert len(view.registration_successes) == 1
+    assert view.registration_successes[0] is controller.model.current_job()
 
 
 def test_register_flow_rejects_unregistered_sample_id(tmp_path):
@@ -97,7 +106,11 @@ def test_record_progress_flow_reports_accumulated_quantity_when_not_complete(tmp
 
     controller.run()
 
-    assert any("진행 기록 완료" in message and "4/13" in message for message in view.messages)
+    assert len(view.progress_results) == 1
+    job, completed = view.progress_results[0]
+    assert completed is False
+    assert job.produced_quantity == 4
+    assert job.actual_production_quantity == 13
 
 
 def test_record_progress_flow_reports_completion_and_confirms_order(tmp_path):
@@ -120,7 +133,10 @@ def test_record_progress_flow_reports_completion_and_confirms_order(tmp_path):
 
     controller.run()
 
-    assert any("생산 완료" in message for message in view.messages)
+    assert len(view.progress_results) == 1
+    job, completed = view.progress_results[0]
+    assert completed is True
+    assert job.order_id == order.order_id
     assert order_model.find_by_id(order.order_id).status == "CONFIRMED"
 
 
