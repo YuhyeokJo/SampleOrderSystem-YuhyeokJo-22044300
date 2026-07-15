@@ -34,6 +34,36 @@ python main.py
 python -m pytest tests/ -v
 ```
 
+전체 기능이 콘솔에서 실제로 맞물려 동작하는지는 `tests/test_end_to_end_scenario.py`가
+`MainController`를 실제 콘솔 경로 그대로 구동해서 검증한다.
+
+```bash
+python -m pytest tests/test_end_to_end_scenario.py -v
+```
+
+## 콘솔에서 전체 시나리오 직접 확인하기
+
+`scripts/demo_scenario.txt`에는 더미 시료 등록 → 주문 접수 → 승인/거절 → 생산 완료 → 출고 →
+모니터링까지 이어지는 입력값이 한 줄씩 저장되어 있다. 이를 표준입력으로 넣어 `main.py`를
+실행하면, 실제 콘솔 화면에 어떻게 출력되는지 눈으로 확인할 수 있다(pytest처럼 값만
+assert하는 것이 아니라 실제 렌더링된 표/배지/진행률 바를 그대로 볼 수 있다).
+
+```bash
+# bash / git bash
+python main.py < scripts/demo_scenario.txt
+```
+
+```powershell
+# PowerShell
+Get-Content scripts\demo_scenario.txt | python main.py
+```
+
+시나리오는 시료 2종(S-001 재고100, S-002 재고5) 등록, 주문 3건 접수(재고 충분/부족/거절
+대상 각 1건), 승인·거절, 생산 완료, 출고까지 진행한 뒤 최종 모니터링(RELEASE 2건, S-002
+재고 고갈 상태)을 보여주고 프로그램을 종료한다. 이 파일과 같은 디렉터리에 `samples.json`,
+`orders.json`, `data/` 등 실행 결과 파일이 생성되므로, 실제 프로젝트 데이터에 영향을 주지
+않으려면 별도의 빈 디렉터리에서 실행하는 것을 권장한다.
+
 ## 주문 상태 흐름
 
 ```
