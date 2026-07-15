@@ -37,7 +37,75 @@ def __init__(self, sample_model=None, order_model=None):
   `tests/test_monitoring_controller.py`)는 그대로 유지하고 통과해야 한다(주입 시 동작은
   변경하지 않음).
 
-## 2. 종합 시나리오 테스트: `tests/test_end_to_end_scenario.py`
+## 2. 버그 수정: 컨트롤러 간 `SampleModel`/`OrderModel` 인스턴스 미공유
+
+### 현재 동작 (결함)
+`controller/main_controller.py`의 `_default_controllers()`는 `SampleController()`,
+`OrderController()`, `ApprovalController()`, `ProductionController()`,
+`ReleaseController()`, `MonitoringController()`를 각각 인자 없이 개별 생성한다. 이 컨트롤러들이
+사용하는 `OrderModel`, `ApprovalModel`, `ProductionModel`, `MonitoringModel`은 각각 필요한
+`SampleModel`/`OrderModel`을 자기 자신의 생성자 안에서 새로 만든다(예:
+`OrderModel.__init__`의 `self._sample_model = sample_model or SampleModel()`). 그 결과
+`MainController()` 생성 시점에 서로 완전히 다른 `SampleModel`/`OrderModel` 인스턴스 여러
+개가 만들어지고, 각 인스턴스는 생성 시점에 파일에서 한 번 읽은 내용을 메모리에 캐시한 채
+그 이후로는 다시 읽지 않는다. 아래 최소 재현으로 확인된다.
+
+```python
+sm1 = SampleModel()
+om = OrderModel()          # 내부적으로 자기만의 SampleModel()을 새로 만듦
+sm1.register('S-001', 'Wafer', 1.0, 0.9, 100)
+om.reserve('S-001', 'Cust', 10)
+# -> OrderValidationError: 시료 ID 'S-001'는 등록되어 있지 않습니다.
+```
+즉 실제 콘솔에서 시료를 등록한 뒤 같은 세션에서 그 시료로 주문을 접수하는 정상적인 사용
+흐름조차 지금은 실패한다. 이 결함이 있으면 아래 3절의 종합 시나리오 테스트가 3단계(시료
+주문 접수)에서부터 실패한다.
+
+### 수정 내용
+`controller/main_controller.py`의 `_default_controllers()`를 아래와 같이 수정하여,
+`SampleModel`, `OrderModel`, `ProductionModel`을 각각 한 번만 생성해 이를 필요로 하는 모든
+하위 모델/컨트롤러에 동일한 인스턴스로 주입한다.
+
+```python
+def _default_controllers():
+    sample_model = SampleModel()
+    order_model = OrderModel(sample_model=sample_model)
+    production_model = ProductionModel(sample_model=sample_model, order_model=order_model)
+    approval_model = ApprovalModel(
+        order_model=order_model, sample_model=sample_model, production_model=production_model
+    )
+    release_model = ReleaseModel(order_model=order_model)
+    monitoring_model = MonitoringModel(sample_model, order_model)
+
+    return {
+        "1": SampleController(model=sample_model),
+        "2": OrderController(model=order_model),
+        "3": ApprovalController(model=approval_model),
+        "4": MonitoringController(model=monitoring_model),
+        "5": ProductionController(model=production_model),
+        "6": ReleaseController(model=release_model),
+    }
+```
+각 모델/컨트롤러 클래스 자체의 생성자 시그니처나 판단 로직은 변경하지 않는다(이미 외부
+인스턴스를 주입받을 수 있는 파라미터를 갖추고 있었음). `MainController._show_summary()`가
+매 루프마다 새 `SampleModel()`을 생성해 파일에서 다시 읽는 기존 방식(Step 7에서 확정, 공유
+인스턴스의 최신 저장 내용을 디스크를 통해 읽어오므로 여전히 올바르게 동작함)은 그대로
+유지하고 변경하지 않는다.
+
+### 회귀 테스트 (반드시 포함)
+- `tmp_path`로 격리한 뒤 `MainController()`를 인자 없이 생성한다. 시료 관리 메뉴(`1`)로
+  시료 하나를 등록하고, 같은 `MainController` 세션 안에서 시료 주문 메뉴(`2`)로 그 시료를
+  주문했을 때, "등록되어 있지 않습니다" 오류 없이 정상적으로 RESERVED 주문이 생성되는지
+  확인한다.
+- 기존에 각 모델에 `sample_model`/`order_model` 등을 명시적으로 주입하던 단위 테스트는
+  그대로 유지하고 통과해야 한다.
+
+## 3. 종합 시나리오 테스트: `tests/test_end_to_end_scenario.py`
+
+이 시나리오 테스트는 위 1번(`MonitoringModel` fallback)과 2번(공유 인스턴스 배선) 수정이
+모두 반영된 이후에만 끝까지 성립한다. 두 수정이 반영되지 않은 상태로는 3단계(시료 주문
+접수)와 1단계(모니터링)에서 각각 실패하므로, 반드시 1번·2번 수정을 먼저 적용한 뒤 이
+시나리오 테스트를 작성·실행한다.
 
 ### 목적
 개별 기능 단위 테스트만으로는 발견하기 어려운, 여러 컨트롤러/모델이 실제 콘솔 진입 경로
@@ -125,7 +193,8 @@ def __init__(self, sample_model=None, order_model=None):
   흐름으로 구성되어 있음을 코드로 확인 가능해야 한다).
 
 ## 범위 제외
-- 이 문서는 기존 Step 1~8에서 정의된 기능 동작을 변경하지 않는다(1번 항목의 `MonitoringModel`
-  생성자 fallback 추가는 결함 수정이며, 다른 모델과 일관된 기존 의도를 복원하는 것으로
-  간주한다).
+- 이 문서는 기존 Step 1~8에서 정의된 기능 동작을 변경하지 않는다(1번 `MonitoringModel`
+  생성자 fallback 추가와 2번 `_default_controllers()` 공유 인스턴스 배선 수정은 모두 결함
+  수정이며, 각 모델/컨트롤러가 이미 갖추고 있던 인스턴스 주입 파라미터를 올바르게 활용하도록
+  바로잡는 것일 뿐 새로운 판단 로직이나 저장 방식을 추가하지 않는다).
 - 콘솔 한글 인코딩 문제 등 이번에 발견된 버그와 무관한 사항은 다루지 않는다.
