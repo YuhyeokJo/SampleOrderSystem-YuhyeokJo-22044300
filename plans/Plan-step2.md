@@ -12,10 +12,11 @@ Order 데이터와 상태 값(RESERVED)은 이후 step(주문 승인/거절, 생
 - 주문번호는 `ORD-YYYYMMDD-XXXX` 형식으로 자동 생성된다.
 - 주문 대상 시료는 시스템에 등록되어 있어야 하며(Step 1의 시료 데이터 참조), 등록되지 않은
   시료 ID로는 주문할 수 없다.
-- 접수된 주문 목록을 조회할 수 있다(Step 1의 시료 목록 조회에 대응하는 주문 조회 기능).
 
 ## 범위 제외 (다음 step 이후)
 
+- 접수된 주문 목록 조회(RESERVED 목록)는 Plan.md에 따라 Step 4(주문 승인/거절)의 범위이므로
+  이번 step에서 다루지 않는다.
 - 주문 승인/거절 처리(재고 판단, CONFIRMED/PRODUCING/REJECTED 전환)는 Step 4에서 다룬다.
 - 생산라인, 출고, 모니터링, 메인 메뉴 통합은 이번 step에서 다루지 않는다.
 - 주문 수정/취소는 요구사항에 명시되어 있지 않으므로 구현하지 않는다.
@@ -34,7 +35,7 @@ Order 데이터와 상태 값(RESERVED)은 이후 step(주문 승인/거절, 생
 model/
   order.py              # Order 엔티티
   order_repository.py    # 주문 JSON 영속성 (원자적 저장)
-  order_model.py         # OrderModel(주문 접수/조회, 주문번호 채번)
+  order_model.py         # OrderModel(주문 접수, 주문번호 채번)
 view/
   order_view.py          # 주문 관련 콘솔 입출력
 controller/
@@ -53,8 +54,7 @@ tests/
 - [ ] 시료 예약(주문 접수) 기능 구현 및 유효성 검증(등록되지 않은 시료 ID로 주문 불가, 주문 수량
       양의 정수)
 - [ ] 접수된 주문은 상태값 RESERVED로 저장됨
-- [ ] 접수된 주문 목록 조회 기능 구현
-- [ ] JSON 파일 기반 영속성 적용(재시작 후에도 주문 데이터 유지)
+- [ ] JSON 파일 기반 영속성 적용(재시작 후에도 주문 데이터가 저장소 레벨에서 유지)
 - [ ] 각 기능에 대응하는 단위 테스트 작성 및 통과
 - [ ] REPORT.md(또는 `reports/Report-step2.md`) 작성
 
